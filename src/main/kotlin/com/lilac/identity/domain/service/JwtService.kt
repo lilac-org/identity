@@ -1,5 +1,7 @@
 package com.lilac.identity.domain.service
 
+import com.auth0.jwt.interfaces.DecodedJWT
+
 interface JwtService {
     fun generateAccessToken(
         userId: String,
@@ -12,4 +14,24 @@ interface JwtService {
     fun generateRefreshToken(
         userId: String
     ): String
+
+    fun generateEmailVerificationToken(
+        userId: String
+    ): String
+
+    fun generatePasswordResetToken(
+        userId: String
+    ): String
+
+    fun decodeEmailVerificationToken(
+        token: String
+    ): DecodedJWT?
+
+    fun decodePasswordResetToken(
+        token: String
+    ): DecodedJWT?
+
+    fun decodeRefreshToken(
+        token: String
+    ): DecodedJWT?
 }

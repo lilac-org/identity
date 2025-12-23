@@ -1,7 +1,9 @@
 package com.lilac.identity.config
 
 import com.lilac.identity.di.mailModule
-import com.lilac.identity.di.securityModule
+import com.lilac.identity.di.repositoryModule
+import com.lilac.identity.di.serviceModule
+import com.lilac.identity.di.useCaseModule
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import org.koin.dsl.module
@@ -19,7 +21,9 @@ fun Application.configureKoin() {
         modules(
             appModule,
             mailModule,
-            securityModule
+            serviceModule,
+            repositoryModule,
+            useCaseModule
         )
     }
 }

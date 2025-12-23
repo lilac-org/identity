@@ -1,6 +1,5 @@
 package com.lilac.identity.config
 
-import com.lilac.identity.util.getConfig
 import io.ktor.server.application.Application
 
 data class MailConfig(
@@ -12,11 +11,13 @@ data class MailConfig(
 )
 
 fun Application.loadMailConfig(): MailConfig {
-    val host = getConfig("mail.host") ?: error("Mail Host must be specified")
-    val port = getConfig("mail.port")?.toInt() ?: 587
-    val username = getConfig("mail.username") ?: error("Mail Username must be specified")
-    val password = getConfig("mail.password") ?: error("Mail Password must be specified")
-    val from = getConfig("mail.from") ?: error("Mail From must be specified")
+    val cfg = environment.config
+
+    val host = cfg.propertyOrNull("mail.host")?.getString() ?: error("Mail Host must be specified")
+    val port = cfg.propertyOrNull("mail.port")?.getString()?.toInt() ?: 587
+    val username = cfg.propertyOrNull("mail.username")?.getString() ?: error("Mail Username must be specified")
+    val password = cfg.propertyOrNull("mail.password")?.getString() ?: error("Mail Password must be specified")
+    val from = cfg.propertyOrNull("mail.from")?.getString() ?: error("Mail From must be specified")
 
     return MailConfig(
         host = host,

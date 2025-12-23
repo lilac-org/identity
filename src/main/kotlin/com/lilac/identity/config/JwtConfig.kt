@@ -10,11 +10,15 @@ data class JwtConfig(
     val realm: String,
     private val secret: String,
     private val accessTokenExpInMins: Long,
-    private val refreshTokenExpInDays: Long
+    private val refreshTokenExpInDays: Long,
+    private val emailVerificationExpInMins: Long,
+    private val resetPasswordExpInMins: Long
 ) {
     val accessTokenExpInMillis = accessTokenExpInMins * 60 * 1000
     val refreshTokenExpInMillis = refreshTokenExpInDays * 24 * 60 * 60 * 1000
-    val algorithm = Algorithm.HMAC512(secret)
+    val emailVerificationExpInMillis = emailVerificationExpInMins * 60 * 1000
+    val resetPasswordExpInMillis = resetPasswordExpInMins * 60 * 1000
+    val algorithm: Algorithm = Algorithm.HMAC512(secret)
 }
 
 fun Application.loadJwtConfig(): JwtConfig {
@@ -27,6 +31,8 @@ fun Application.loadJwtConfig(): JwtConfig {
         audience = cfg.propertyOrNull("jwt.audience")?.getString() ?: error("JWT Audience must be specified"),
         issuer = cfg.propertyOrNull("jwt.issuer")?.getString() ?: error("JWT Issuer must be specified"),
         accessTokenExpInMins = cfg.propertyOrNull("jwt.accessTokenExpInMins")?.getString()?.toLong() ?: 10,
-        refreshTokenExpInDays = cfg.propertyOrNull("jwt.refreshTokenExpInDays")?.getString()?.toLong() ?: 30
+        refreshTokenExpInDays = cfg.propertyOrNull("jwt.refreshTokenExpInDays")?.getString()?.toLong() ?: 30,
+        emailVerificationExpInMins = cfg.propertyOrNull("jwt.emailVerificationExpInMins")?.getString()?.toLong() ?: 10,
+        resetPasswordExpInMins = cfg.propertyOrNull("jwt.resetPasswordExpInMins")?.getString()?.toLong() ?: 10
     )
 }

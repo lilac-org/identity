@@ -13,6 +13,8 @@ jwt:
   algorithm: "HS256"
   accessTokenExpInMins: 15
   refreshTokenExpInDays: 30
+  emailVerificationExpInMins: 10
+  resetPasswordExpInMins: 10
 
   secret: ${JWT_SECRET}
 
