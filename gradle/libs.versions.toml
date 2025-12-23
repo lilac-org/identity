@@ -1,0 +1,46 @@
+[versions]
+kotlin = "2.3.0"
+ktor = "3.3.3"
+exposed = "1.0.0-rc-3"
+postgresql = "42.7.8"
+koin = "4.1.1"
+logback = "1.5.23"
+khealth = "3.0.2"
+hikari-cp = "7.0.2"
+bcrypt = "0.4"
+jakarta = "2.0.2"
+
+[libraries]
+server-cors = { module = "io.ktor:ktor-server-cors", version.ref = "ktor" }
+server-default-headers = { module = "io.ktor:ktor-server-default-headers", version.ref = "ktor" }
+server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktor" }
+server-auth = { module = "io.ktor:ktor-server-auth", version.ref = "ktor" }
+server-auth-jwt = { module = "io.ktor:ktor-server-auth-jwt", version.ref = "ktor" }
+server-request-validation = { module = "io.ktor:ktor-server-request-validation", version.ref = "ktor" }
+server-resources = { module = "io.ktor:ktor-server-resources", version.ref = "ktor" }
+server-host-common = { module = "io.ktor:ktor-server-host-common", version.ref = "ktor" }
+server-status-pages = { module = "io.ktor:ktor-server-status-pages", version.ref = "ktor" }
+server-call-logging = { module = "io.ktor:ktor-server-call-logging", version.ref = "ktor" }
+server-config-yaml = { module = "io.ktor:ktor-server-config-yaml", version.ref = "ktor" }
+server-content-negotiation = { module = "io.ktor:ktor-server-content-negotiation", version.ref = "ktor" }
+server-netty = { module = "io.ktor:ktor-server-netty", version.ref = "ktor" }
+serialization-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
+khealth = { module = "dev.hayden:khealth", version.ref = "khealth" }
+exposed-core = { module = "org.jetbrains.exposed:exposed-core", version.ref = "exposed" }
+exposed-jdbc = { module = "org.jetbrains.exposed:exposed-jdbc", version.ref = "exposed" }
+postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
+koin-ktor = { module = "io.insert-koin:koin-ktor", version.ref = "koin" }
+koin-slf4j = { module = "io.insert-koin:koin-logger-slf4j", version.ref = "koin" }
+logback = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
+hikari-cp = { module = "com.zaxxer:HikariCP", version.ref = "hikari-cp" }
+bcrypt = { module = "org.mindrot:jbcrypt", version.ref = "bcrypt" }
+jakarta-mail = { module = "com.sun.mail:jakarta.mail", version.ref = "jakarta" }
+
+# Testing
+server-test-host = { module = "io.ktor:ktor-server-test-host", version.ref = "ktor" }
+kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
+
+[plugins]
+ktor = { id = "io.ktor.plugin", version.ref = "ktor" }
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
