@@ -1,3 +1,5 @@
+import io.ktor.plugin.OpenApiPreview
+
 plugins {
     alias(libs.plugins.ktor)
     alias(libs.plugins.kotlin.jvm)
@@ -25,6 +27,8 @@ dependencies {
     implementation(libs.server.config.yaml)
     implementation(libs.server.content.negotiation)
     implementation(libs.server.netty)
+    implementation(libs.server.openapi)
+    implementation(libs.server.swagger)
     implementation(libs.serialization.json)
     implementation(libs.khealth)
     implementation(libs.logback)
@@ -46,4 +50,19 @@ dependencies {
     testImplementation(libs.client.content.negotiation)
     testImplementation(libs.mockk)
     testImplementation(libs.junit.jupiter)
+}
+
+// Documentation Open API Generator Plugin
+ktor {
+    @OptIn(OpenApiPreview::class)
+    openApi {
+        title = "Identity API"
+        version = "1.0"
+        summary = "Identity API Summary"
+        description = "Identity API Description"
+        contact = "lgandre45@gmail.com"
+
+        target = project.layout.projectDirectory
+            .file("src/main/resources/openapi/documentation.json")
+    }
 }

@@ -49,7 +49,11 @@ class AuthUseCase(
             email = email,
             fullName = "$firstName $lastName"
         )
-        if (!emailSent) throw EmailVerificationNotSentException()
+        if (!emailSent) {
+            userRepository.deleteById(userId)
+
+            throw EmailVerificationNotSentException()
+        }
 
         val user = userRepository.findById(userId) ?: throw UserNotFoundException()
 

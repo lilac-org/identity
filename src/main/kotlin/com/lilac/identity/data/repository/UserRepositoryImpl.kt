@@ -11,6 +11,7 @@ import org.jetbrains.exposed.v1.core.Op
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.statements.UpdateStatement
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insertAndGetId
 import org.jetbrains.exposed.v1.jdbc.orWhere
 import org.jetbrains.exposed.v1.jdbc.select
@@ -108,6 +109,13 @@ class UserRepositoryImpl(): UserRepository {
         } catch (e: Exception) {
             throw CreateUserException("Failed to create user: ${e.message}")
         }
+    }
+
+    override fun deleteById(id: String): Boolean = transaction {
+        UsersTable
+            .deleteWhere {
+                UsersTable.id eq id.toUUID()
+            } > 0
     }
 
     override fun updatePassword(id: String, newHash: String): Boolean = transaction {

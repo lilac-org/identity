@@ -30,7 +30,8 @@ fun Route.authRoutes() {
             call.respond(
                 HttpStatusCode.Created,
                 TokenPairResponse(
-                    data = tokenPair.toDto()
+                    data = tokenPair.toDto(),
+                    message = "User created successfully"
                 )
             )
         }

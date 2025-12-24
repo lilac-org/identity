@@ -16,6 +16,10 @@ interface UserRepository {
         lastName: String,
         isEmailVerified: Boolean = false
     ): String
+
+    fun deleteById(
+        id: String
+    ): Boolean
     fun updatePassword(id: String, newHash: String): Boolean
     fun markEmailVerified(id: String): Boolean
 }

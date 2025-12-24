@@ -1,0 +1,24 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Hard Run" type="KtorApplicationConfigurationType" factoryName="Ktor">
+    <option name="envFilePaths">
+      <option value="$PROJECT_DIR$/.env" />
+    </option>
+    <option name="MAIN_CLASS_NAME" value="io.ktor.server.netty.EngineMain" />
+    <module name="identity.main" />
+    <option name="VM_PARAMETERS" value="--enable-native-access=ALL-UNNAMED " />
+    <option name="alternativeJrePath" />
+    <option name="alternativeJrePathEnabled" value="false" />
+    <option name="includeProvidedScope" value="false" />
+    <option name="mainClass" value="io.ktor.server.netty.EngineMain" />
+    <option name="passParentEnvs" value="true" />
+    <option name="programParameters" value="" />
+    <option name="shortenCommandLine" />
+    <option name="vmParameters" value="--enable-native-access=ALL-UNNAMED " />
+    <option name="workingDirectory" value="$PROJECT_DIR$" />
+    <method v="2">
+      <option name="RunConfigurationTask" enabled="true" run_configuration_name="Clean" run_configuration_type="GradleRunConfiguration" />
+      <option name="RunConfigurationTask" enabled="false" run_configuration_name="identity [buildOpenApi]" run_configuration_type="GradleRunConfiguration" />
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
