@@ -21,4 +21,5 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            ./deploy_lilac_identity
+            cd ~/lilac/identity
+            ./deploy
