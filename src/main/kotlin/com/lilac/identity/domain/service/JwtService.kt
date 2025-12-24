@@ -3,6 +3,7 @@ package com.lilac.identity.domain.service
 import com.auth0.jwt.interfaces.DecodedJWT
 
 interface JwtService {
+    val domain: String
     fun generateAccessToken(
         userId: String,
         username: String,

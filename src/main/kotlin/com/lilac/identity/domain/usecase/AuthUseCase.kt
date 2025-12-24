@@ -44,16 +44,23 @@ class AuthUseCase(
             coverPictureUrl = null
         )
 
+        println("Successfully registered user: $userId")
+
         val emailSent = mailRepository.sendEmailVerification(
             userId = userId,
             email = email,
             fullName = "$firstName $lastName"
         )
+
+        println("Email sent: $emailSent")
         if (!emailSent) {
+            println("Failed to send email")
             userRepository.deleteById(userId)
 
             throw EmailVerificationNotSentException()
         }
+
+        println("Successfully sent email")
 
         val user = userRepository.findById(userId) ?: throw UserNotFoundException()
 

@@ -12,7 +12,7 @@ class MailRepositoryImpl(
         return try {
             val token = jwtService.generateEmailVerificationToken(userId)
             val subject = "Verify your email"
-            val link = "http://localhost:8080/verify-email?token=$token"
+            val link = "${jwtService.domain}/verify-email?token=$token"
             val body = """
                 <html>
                     <body>

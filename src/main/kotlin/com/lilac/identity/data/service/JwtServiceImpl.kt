@@ -15,6 +15,8 @@ class JwtServiceImpl(
     private val TYPE_EMAIL_VERIFICATION = "email_verification"
     private val TYPE_PASSWORD_RESET = "password_reset"
 
+    override val domain = config.domain
+
     override fun generateAccessToken(
         userId: String,
         username: String,
