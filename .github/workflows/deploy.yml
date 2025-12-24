@@ -8,6 +8,7 @@ on:
       - README.md
       - docs/**
       - .github/**
+    workflow_dispatch:
 
 jobs:
   deploy:
@@ -21,6 +22,4 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            cd ~/lilac/identity
-            sudo chmod +x ./deploy
-            ./deploy
+            /root/deploy_lilac_identity
