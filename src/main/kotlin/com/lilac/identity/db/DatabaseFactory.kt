@@ -13,10 +13,10 @@ object DatabaseFactory {
     fun Application.configureDatabase() {
         val cfg = environment.config
 
-        val jdbcUrl = cfg.propertyOrNull("ktor.datasource.jdbcUrl")?.getString() ?: error("Missing datasource.jdbcUrl")
-        val username = cfg.propertyOrNull("ktor.datasource.username")?.getString() ?: error("Missing datasource.username")
-        val password = cfg.propertyOrNull("ktor.datasource.password")?.getString() ?: error("Missing datasource.password")
-        val maximumPoolSize = cfg.propertyOrNull("ktor.datasource.maximumPoolSize")?.getString()?.toInt() ?: 10
+        val jdbcUrl = cfg.propertyOrNull("postgres.url")?.getString() ?: error("Missing postgres.url")
+        val username = cfg.propertyOrNull("postgres.username")?.getString() ?: error("Missing postgres.username")
+        val password = cfg.propertyOrNull("postgres.password")?.getString() ?: error("Missing postgres.password")
+        val maximumPoolSize = cfg.propertyOrNull("datasource.maximumPoolSize")?.getString()?.toInt() ?: 10
 
         val config = HikariConfig().apply {
             this.jdbcUrl = jdbcUrl
