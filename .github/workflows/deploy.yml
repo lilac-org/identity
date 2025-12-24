@@ -8,6 +8,7 @@ on:
       - README.md
       - docs/**
       - .github/**
+      - "**/*.example"
     workflow_dispatch:
 
 jobs:
