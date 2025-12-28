@@ -6,7 +6,7 @@ ktor:
 
 auth:
   realm: Lilac Identity Test
-  secret: test0jwt0secret01234567890
+  privateKeyPath: ./keys/test_jwt_private.pem
   audience: lilac-identity-test
   issuer: lilac-identity-test
   accessTokenExpInMins: 5

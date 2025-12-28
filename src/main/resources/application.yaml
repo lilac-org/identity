@@ -9,7 +9,7 @@ ktor:
 
 auth:
   realm: "Lilac Identity"
-  secret: ${AUTH_SECRET}
+  privateKeyPath: ${PRIVATE_KEY_PATH}
   audience: "lilac-identity"
   issuer: "lilac-identity"
   accessTokenExpInMins: 15
