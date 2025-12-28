@@ -6,7 +6,7 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
-group = "com.lilac"
+group = "com.lilac.identity"
 version = "0.0.1"
 
 application {
@@ -78,7 +78,7 @@ tasks.register("convertOpenApi") {
         val outputFile = file("src/main/resources/openapi/documentation.json")
 
         if (!inputFile.exists()) {
-            println("❌ File tidak ditemukan: ${inputFile.absolutePath}")
+            println("❌ File not found: ${inputFile.absolutePath}")
             return@doLast
         }
 
@@ -92,12 +92,12 @@ tasks.register("convertOpenApi") {
             outputFile.writeText(converted)
 
             if (inputFile.delete()) {
-                println("🗑️ generated.json berhasil dihapus")
+                println("🗑️ generated.json successfully deleted")
             } else {
-                println("⚠️ Gagal menghapus generated.json")
+                println("⚠️ Failed to delete generated.json")
             }
 
-            println("✅ Konversi berhasil!")
+            println("✅ Successfully convert!")
             println("📁 Output: ${outputFile.absolutePath}")
         } catch (e: Exception) {
             println("❌ Error: ${e.message}")
