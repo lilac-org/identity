@@ -9,7 +9,9 @@ import com.lilac.identity.presentation.dto.UserPublicDetailDto
 fun UserProfile.toDto() = UserProfileDto(
     bio = this.bio,
     profilePictureUrl = this.profilePictureUrl,
-    coverPictureUrl = this.coverPictureUrl
+    coverPictureUrl = this.coverPictureUrl,
+    createdAt = this.createdAt,
+    updatedAt = this.updatedAt
 )
 
 fun UserDetail.toDto() = UserDetailDto(
