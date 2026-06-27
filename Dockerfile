@@ -34,21 +34,21 @@ RUN ./gradlew --no-daemon :app:installDist -x test
 FROM eclipse-temurin:25-jre AS runtime
 WORKDIR /app
 
-# Hugging Face runs Spaces as uid 1000. Create a matching user so the
-# process and any writes (caches, /tmp) behave predictably.
-RUN useradd --create-home --uid 1000 user
+# Hugging Face runs Spaces as uid 1000. The base image ALREADY ships a user
+# with UID 1000, so we must NOT create one (useradd fails with
+# "UID 1000 is not unique"). We simply run as that numeric UID instead.
 
-# Copy the distribution and hand ownership to the runtime user.
+# Copy the distribution and hand ownership to the runtime user (uid 1000).
 # Without --chown the dependency jars stay owned by root and are NOT
 # readable by the unprivileged user, which fails at runtime with:
 #   NoClassDefFoundError: io/ktor/server/application/Application
 # (the JVM can see the jars but cannot open them). The chmod is a
 # belt-and-suspenders guarantee that every jar is world-readable.
-COPY --from=build --chown=user:user /workspace/app/build/install/app/ /app/
+COPY --from=build --chown=1000:1000 /workspace/app/build/install/app/ /app/
 RUN chmod -R a+rX /app
 
 ENV JAVA_OPTS="-XX:MaxRAMPercentage=75.0"
-ENV HOME=/home/user
+ENV HOME=/tmp
 ENV SERVER_HOST=0.0.0.0
 # Hugging Face Spaces routes external HTTPS traffic to this port.
 ENV SERVER_PORT=7860
@@ -58,7 +58,7 @@ ENV COOKIE_SECURE=true
 ENV LOG_FORMAT=json
 EXPOSE 7860
 
-USER user
+USER 1000
 
 # Run via an explicit wildcard classpath. The JVM expands "/app/lib/*" to
 # every jar in the distribution's lib directory (including the application
