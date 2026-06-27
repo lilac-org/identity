@@ -62,6 +62,8 @@ fun appModule(config: AppConfig): Module = module {
             allowedHosts = config.corsAllowedHosts,
             swaggerEnabled = config.swaggerEnabled,
             adminDashboardEnabled = config.adminDashboardEnabled,
+            behindProxy = config.behindProxy,
+            cookieSecure = config.cookieSecure,
         )
     }
 }

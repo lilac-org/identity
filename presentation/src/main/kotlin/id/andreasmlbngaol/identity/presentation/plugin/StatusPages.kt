@@ -7,9 +7,12 @@ import id.andreasmlbngaol.identity.presentation.response.ApiResponse
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
+import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.install
+import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.response.respond
+import kotlinx.serialization.SerializationException
 
 private val logger = KotlinLogging.logger {}
 
@@ -32,6 +35,16 @@ fun Application.configureStatusPages() {
                 ),
             )
         }
+        // Malformed or incomplete JSON bodies (e.g. missing required fields) are
+        // client errors, not server errors -> 400 with a stable code. Ktor wraps
+        // content-negotiation failures in BadRequestException, but the underlying
+        // SerializationException can also surface directly, so handle both.
+        exception<BadRequestException> { call, cause ->
+            call.respondBadBody(cause)
+        }
+        exception<SerializationException> { call, cause ->
+            call.respondBadBody(cause)
+        }
         exception<Throwable> { call, cause ->
             logger.error(cause) { "Unexpected error" }
             call.respond(
@@ -43,6 +56,39 @@ fun Application.configureStatusPages() {
             )
         }
     }
+}
+
+/** Maps a malformed-request-body failure to a 400 with a VALIDATION_FAILED code. */
+private suspend fun ApplicationCall.respondBadBody(cause: Throwable) {
+    logger.debug(cause) { "Rejected malformed request body" }
+    // Ktor wraps the kotlinx.serialization error a few layers deep
+    // (BadRequestException -> JsonConvertException -> SerializationException).
+    // Walk the cause chain to surface the most specific serializer message,
+    // e.g. "Field 'email' is required ... but it was missing". The trailing
+    // " at path: $" is a kotlinx.serialization JSON pointer that is noise for
+    // flat bodies, so trim it off for the client-facing message.
+    val reason = (cause.findSerializationMessage() ?: cause.message)
+        ?.substringBefore(" at path:")
+        ?.trim()
+    respond(
+        HttpStatusCode.BadRequest,
+        ApiResponse.failure(
+            message = reason?.takeIf { it.isNotBlank() } ?: "Invalid or malformed request body",
+            error = ApiError(code = ErrorCode.VALIDATION_FAILED.name),
+        ),
+    )
+}
+
+/** Walks the exception cause chain and returns the first SerializationException message. */
+private fun Throwable.findSerializationMessage(): String? {
+    var current: Throwable? = this
+    var depth = 0
+    while (current != null && depth < 10) {
+        if (current is SerializationException) return current.message
+        current = current.cause
+        depth++
+    }
+    return null
 }
 
 private fun ErrorCode.toHttpStatus(): HttpStatusCode = when (this) {

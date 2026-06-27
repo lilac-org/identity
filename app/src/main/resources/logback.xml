@@ -4,16 +4,21 @@
       Two appenders are provided. The default console appender is human-readable
       for local development. Set LOG_FORMAT=json (production) to emit structured
       JSON via the Logstash encoder for log aggregation.
+
+      IMPORTANT: the appender names MUST match the possible LOG_FORMAT values
+      ("text" / "json", lowercase) because the root logger references the
+      appender by `${LOG_FORMAT}`. A case mismatch leaves the root logger with
+      no appender attached, which silently suppresses ALL application logs.
     -->
     <property name="LOG_FORMAT" value="${LOG_FORMAT:-text}"/>
 
-    <appender name="TEXT" class="ch.qos.logback.core.ConsoleAppender">
+    <appender name="text" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg%n</pattern>
         </encoder>
     </appender>
 
-    <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
+    <appender name="json" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="net.logstash.logback.encoder.LogstashEncoder">
             <includeMdcKeyName>requestId</includeMdcKeyName>
             <includeMdcKeyName>userId</includeMdcKeyName>

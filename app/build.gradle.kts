@@ -1,3 +1,5 @@
+import org.gradle.api.tasks.JavaExec
+
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.serialization)
@@ -39,6 +41,18 @@ dependencies {
 
 application {
     mainClass = "id.andreasmlbngaol.identity.ApplicationKt"
+}
+
+// Run the service from the repository root so relative paths resolve there:
+//   - `.env` (dotenv default directory is "./")
+//   - JWT key files (JWT_PRIVATE_KEY_PATH=./keys/private.pem)
+// Without this, `:app:run` uses the `app/` subproject dir as its working
+// directory, the key files are not found, and RsaKeys fails with
+// "Missing key encoding" (empty PEM).
+tasks.named<JavaExec>("run") {
+    workingDir = rootProject.projectDir
+    // Silence the JDK 25 native-access warning emitted by JNA at runtime.
+    jvmArgs("--enable-native-access=ALL-UNNAMED")
 }
 
 tasks.test {

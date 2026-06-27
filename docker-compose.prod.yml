@@ -10,10 +10,14 @@ services:
       dockerfile: docker/Dockerfile
     container_name: identity-service
     env_file:
-      - .env
+      - .env.prod
     environment:
       DB_JDBC_URL: jdbc:postgresql://postgres:5432/identity
       LOG_FORMAT: json
+    volumes:
+      # RSA signing keys generated on the host (see .env.example). Mounted read-only.
+      # Alternatively, drop this and pass JWT_PRIVATE_KEY_PEM / JWT_PUBLIC_KEY_PEM via .env.
+      - ./keys:/app/keys:ro
     ports:
       - "8080:8080"
     depends_on:

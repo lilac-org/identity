@@ -13,6 +13,7 @@ import io.ktor.server.plugins.compression.gzip
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.plugins.defaultheaders.DefaultHeaders
+import io.ktor.server.plugins.forwardedheaders.XForwardedHeaders
 import kotlinx.serialization.json.Json
 import org.slf4j.event.Level
 import java.util.UUID
@@ -54,7 +55,13 @@ fun Application.configureMonitoring() {
  * Transport concerns: permissive CORS for local development (lock this down per
  * environment), gzip compression, and sensible default headers.
  */
-fun Application.configureHttp(allowedHosts: List<String>) {
+fun Application.configureHttp(allowedHosts: List<String>, behindProxy: Boolean = false) {
+    // Behind a trusted reverse proxy (TLS terminator) honor X-Forwarded-* so that
+    // call.request.origin reflects the public scheme/host/port. Enable ONLY when
+    // actually behind a proxy, otherwise clients could spoof these headers.
+    if (behindProxy) {
+        install(XForwardedHeaders)
+    }
     install(DefaultHeaders) {
         header("X-Content-Type-Options", "nosniff")
         header("X-Frame-Options", "DENY")

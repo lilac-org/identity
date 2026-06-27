@@ -35,6 +35,7 @@ dependencies {
     implementation(ktorLibs.server.rateLimit)
     implementation(ktorLibs.server.requestValidation)
     implementation(ktorLibs.server.defaultHeaders)
+    implementation(ktorLibs.server.forwardedHeader)
     implementation(ktorLibs.server.compression)
     implementation(ktorLibs.server.openapi)
     implementation(ktorLibs.server.swagger)

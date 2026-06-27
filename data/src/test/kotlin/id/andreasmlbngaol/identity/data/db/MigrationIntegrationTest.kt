@@ -3,8 +3,10 @@ package id.andreasmlbngaol.identity.data.db
 import id.andreasmlbngaol.identity.data.config.DatabaseConfig
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import org.testcontainers.DockerClientFactory
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.utility.DockerImageName
 import java.sql.DriverManager
@@ -12,7 +14,11 @@ import java.sql.DriverManager
 /**
  * Integration test that boots a real PostgreSQL via Testcontainers, lets the
  * [DatabaseFactory] run the Flyway migrations, and asserts the schema and seed
- * data were applied. Requires a working Docker daemon.
+ * data were applied.
+ *
+ * Requires a working Docker daemon. When Docker is not available (e.g. CI
+ * runners without a Docker socket, or local machines without Docker running)
+ * the test is skipped via a JUnit assumption rather than failing the build.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class MigrationIntegrationTest {
@@ -24,6 +30,11 @@ class MigrationIntegrationTest {
     private lateinit var factory: DatabaseFactory
 
     private fun start() {
+        // Abort (skip) instead of failing when there is no Docker environment.
+        assumeTrue(
+            DockerClientFactory.instance().isDockerAvailable,
+            "Docker is not available; skipping migration integration test.",
+        )
         postgres.start()
         factory = DatabaseFactory(
             DatabaseConfig(

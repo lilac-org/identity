@@ -7,6 +7,7 @@ import id.andreasmlbngaol.identity.presentation.mapper.toResponse
 import id.andreasmlbngaol.identity.presentation.response.ApiResponse
 import id.andreasmlbngaol.identity.presentation.security.toRequestContext
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.plugins.origin
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondRedirect
 import io.ktor.server.routing.Route
@@ -60,9 +61,18 @@ private suspend fun io.ktor.server.application.ApplicationCall.parseProvider(): 
         }
 }
 
-private fun io.ktor.server.application.ApplicationCall.redirectUri(provider: AuthProvider): String =
-    request.queryParameters["redirect_uri"]
-        ?: "${request.local.scheme}://${request.host()}:${request.port()}/api/v1/oauth/${provider.name.lowercase()}/callback"
-
-private fun io.ktor.server.request.ApplicationRequest.host(): String = local.serverHost
-private fun io.ktor.server.request.ApplicationRequest.port(): Int = local.serverPort
+private fun io.ktor.server.application.ApplicationCall.redirectUri(provider: AuthProvider): String {
+    request.queryParameters["redirect_uri"]?.let { return it }
+    // Use request.origin (not request.local) so that, behind a reverse proxy with
+    // XForwardedHeaders installed, the public scheme/host/port are reflected. The
+    // default port for the scheme is omitted so the URI matches EXACTLY what is
+    // registered in the provider console (https://host/... not https://host:443/...).
+    val origin = request.origin
+    val scheme = origin.scheme
+    val host = origin.serverHost
+    val port = origin.serverPort
+    val authority =
+        if (port <= 0 || (scheme == "https" && port == 443) || (scheme == "http" && port == 80)) host
+        else "$host:$port"
+    return "$scheme://$authority/api/v1/oauth/${provider.name.lowercase()}/callback"
+}

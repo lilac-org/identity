@@ -20,4 +20,8 @@ data class HttpRuntimeConfig(
     val allowedHosts: List<String> = listOf("*"),
     val swaggerEnabled: Boolean = true,
     val adminDashboardEnabled: Boolean = true,
+    /** Honor X-Forwarded-* headers (enable only behind a trusted reverse proxy). */
+    val behindProxy: Boolean = false,
+    /** Mark the admin-dashboard cookie Secure (enable when served over HTTPS). */
+    val cookieSecure: Boolean = false,
 )
