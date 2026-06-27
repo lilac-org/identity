@@ -1,12 +1,37 @@
-# Identity — Authentication Microservice
+# Identity — Authentication & Authorization Microservice
 
-A reusable, production-grade authentication & authorization microservice built
-with **Ktor 3.5.1** and **Kotlin 2.4.0**. It provides a single, centralised
-identity for every backend you build: it issues **RS256 JWT access tokens** that
-any downstream service can verify locally via the **JWKS** endpoint, plus
-rotating, reuse-detecting **refresh tokens**.
+A reusable, production-grade authentication and authorization microservice built
+with **Ktor 3.5.1** and **Kotlin 2.4.0**. It acts as a single, centralized
+identity provider for every backend you build: it issues **RS256 JWT access
+tokens** that any downstream service can verify locally through the **JWKS**
+endpoint, together with rotating, reuse-detecting **refresh tokens**.
 
-> Designed to be dropped in front of all your projects that need auth.
+> Designed to be dropped in front of all of your projects that need auth.
+
+---
+
+## Base URL
+
+The running API is currently available at:
+
+```
+https://8080.tomavue.online
+```
+
+**Every application endpoint lives under `/api/v1/`.** For example, the public
+API surface is reached via:
+
+```
+https://8080.tomavue.online/api/v1/...
+```
+
+A few operational endpoints sit outside the versioned prefix (for example the
+health probe and the JWKS/OpenID discovery documents used for token
+verification), but everything you call as a client of this service is under
+`/api/v1/`.
+
+Interactive API documentation (when enabled) is served at
+`https://8080.tomavue.online/swagger`.
 
 ---
 
@@ -16,21 +41,40 @@ rotating, reuse-detecting **refresh tokens**.
   (all technology + DI), `presentation` (Ktor HTTP), `app` (bootstrap).
 - **Authentication** — register, login (email / username / phone + password),
   logout, token refresh, forgot/reset password, email verification, resend
-  verification, change password, profile read/update.
-- **OAuth 2.0 social login** — Google & GitHub.
+  verification, change password, and profile read/update.
+- **OAuth 2.0 social login** — Google and GitHub.
 - **JWT** — RS256 signing, 15-minute stateless access tokens, 7-day stateful
   refresh tokens with rotation, reuse detection, and SHA-256-hashed storage.
   Global invalidation via a per-user `tokenVersion`.
 - **Authorization** — RBAC with fine-grained `resource:action` permissions.
   Seeded `USER` and `ADMIN` roles.
 - **Multi-tenant by audience** — one shared user pool; client/app registration
-  with `aud` claims and a client-credentials grant for service-to-service.
+  with `aud` claims and a client-credentials grant for service-to-service auth.
 - **Security** — Argon2id password hashing (bcrypt fallback), constant-time
-  login, CORS, rate-limiting scaffolding, request validation.
+  login, CORS, rate-limiting scaffolding, request validation, and forwarded-
+  header awareness for correct scheme/host behind a proxy.
 - **Operations** — Flyway migrations, monthly-partitioned async audit log,
-  soft-delete users, structured (JSON) logging, `/health`, OpenAPI/Swagger,
-  server-rendered admin dashboard (kotlinx.html + HTMX).
-- **Testing** — unit tests (MockK) + integration tests (Testcontainers).
+  soft-delete users, structured (JSON) logging, a `/health` probe,
+  OpenAPI/Swagger, and a server-rendered admin dashboard
+  (kotlinx.html + HTMX).
+- **Testing** — unit tests (MockK) plus integration tests (Testcontainers).
+
+---
+
+## Technology stack
+
+| Concern | Choice |
+| --- | --- |
+| Language / runtime | Kotlin 2.4.0 on JDK 25 |
+| HTTP framework | Ktor 3.5.1 (Netty engine) |
+| Dependency injection | Koin 4.2.2 |
+| Persistence | Exposed 1.3.0 + PostgreSQL (HikariCP pool) |
+| Migrations | Flyway 12.9.0 |
+| JWT / crypto | Nimbus JOSE + JWT, Argon2id, bcrypt |
+| Email | Resend / SMTP (Simple Java Mail), or console (LOG) |
+| Logging | Logback + Logstash encoder (text or JSON) |
+| Validation | Konform |
+| Testing | JUnit 5, MockK, Kotest assertions, Testcontainers |
 
 ---
 
@@ -59,15 +103,15 @@ everything together.
 
 - **JDK 25** (the Gradle toolchain targets 25).
 - **PostgreSQL 14+** (17 recommended).
-- **Docker** (for the dev stack and integration tests).
-- An RSA key pair for JWT signing (see below).
+- **Docker** (for the dev stack, the production stack, and integration tests).
+- An **RSA key pair** for JWT signing (see below).
 
 ---
 
 ## Quick start (development)
 
 ```bash
-# 1. Start Postgres (and Redis, reserved for the future denylist).
+# 1. Start PostgreSQL.
 docker compose -f docker-compose.dev.yml up -d
 
 # 2. Generate a JWT key pair.
@@ -82,110 +126,167 @@ cp .env.example .env      # adjust values as needed
 ./gradlew :app:run
 ```
 
-The service starts on `http://localhost:8080`.
-Migrations run automatically on startup (`DB_RUN_MIGRATIONS=true`).
-
-### Useful endpoints
-
-| Endpoint | Purpose |
-| --- | --- |
-| `GET /health` | Liveness/readiness probe |
-| `GET /.well-known/jwks.json` | Public keys for token verification |
-| `GET /.well-known/openid-configuration` | Discovery metadata |
-| `POST /api/v1/auth/register` | Create an account |
-| `POST /api/v1/auth/login` | Authenticate |
-| `POST /api/v1/auth/refresh` | Rotate tokens |
-| `GET /api/v1/users/me` | Current profile (bearer auth) |
-| `GET /api/v1/admin/users` | Admin user list (permissioned) |
-| `GET /swagger` | Swagger UI (when `SWAGGER_ENABLED=true`) |
-| `GET /admin/dashboard` | Server-rendered admin dashboard |
+The service starts on `http://localhost:8080`, and all application routes are
+served under `/api/v1/`. Database migrations run automatically on startup
+(`DB_RUN_MIGRATIONS=true`).
 
 ---
 
-## Configuration
+## Production deployment
 
-All configuration is via environment variables (12-factor), transparently
-sourced from a local `.env` in development (dotenv-kotlin). See
-[`.env.example`](.env.example) for the full list with defaults. Highlights:
+The production stack (`docker-compose.prod.yml`) runs the service image
+alongside PostgreSQL. The service is built from `docker/Dockerfile` (multi-stage:
+JDK 25 build → slim JRE 25 runtime, running as an unprivileged user).
 
-- **Database:** `DB_JDBC_URL`, `DB_USERNAME`, `DB_PASSWORD`.
-- **JWT keys:** `JWT_PRIVATE_KEY_PATH` / `JWT_PUBLIC_KEY_PATH` (file) **or**
-  `JWT_PRIVATE_KEY_PEM` / `JWT_PUBLIC_KEY_PEM` (inline, `\n`-escaped).
-- **Email:** `EMAIL_PROVIDER` = `LOG` (dev) | `RESEND` | `SMTP`.
-- **OAuth:** `OAUTH_GOOGLE_*`, `OAUTH_GITHUB_*` (a provider is enabled only
-  when both its client id and secret are present).
-- **Rate limiting:** `RATE_LIMIT_ENABLED` (off by default — implemented but not
-  enforced until you opt in).
-
----
-
-## Tokens & how downstream services verify them
-
-1. The service signs access tokens with RS256 using its private key.
-2. It publishes the corresponding public key at `/.well-known/jwks.json`.
-3. Any backend verifies an incoming access token **locally** against the JWKS
-   (no network call to this service per request), checking signature, `iss`,
-   `aud`, and expiry. Authorization is carried in the token's role/permission
-   and audience claims.
-
-Refresh tokens are opaque, stored only as SHA-256 hashes, rotated on every use,
-and grouped into families so that **reuse of a rotated token revokes the whole
-family** (theft detection).
-
----
-
-## Running tests
+### 1. Prepare secrets and keys
 
 ```bash
-./gradlew test            # all modules
-./gradlew :domain:test    # fast unit tests (MockK)
-./gradlew :data:test      # integration tests (Testcontainers; needs Docker)
+# RSA signing keys (mounted read-only into the container at /app/keys).
+mkdir -p keys
+openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out keys/private.pem
+openssl rsa -in keys/private.pem -pubout -out keys/public.pem
+
+# Production environment file.
+cp .env.example .env.prod
 ```
 
----
+### 2. Set the important production values in `.env.prod`
 
-## Production with Docker
+| Variable | Production value | Why |
+| --- | --- | --- |
+| `DB_PASSWORD` | a strong secret | never ship the default |
+| `FRONTEND_BASE_URL` | your public URL | used in email links / redirects |
+| `CORS_ALLOWED_HOSTS` | your real origins | avoid `*` in production |
+| `BEHIND_PROXY` | `true` | honor `X-Forwarded-*` (correct HTTPS scheme/host) |
+| `COOKIE_SECURE` | `true` | admin-dashboard cookie over HTTPS only |
+| `LOG_FORMAT` | `json` | structured logs (already forced in compose) |
+| `EMAIL_PROVIDER` | `RESEND` or `SMTP` | real email delivery |
+
+> **`BEHIND_PROXY=true` is required** when the service runs behind a TLS
+> terminator (reverse proxy or a Cloudflare Tunnel). Without it the service
+> derives URLs from the raw `http` connection it receives locally, which breaks
+> OAuth redirect URIs (they would be sent as `http://` and rejected with
+> `redirect_uri_mismatch`).
+
+### 3. Build and run
 
 ```bash
-cp .env.example .env      # set real secrets (DB, JWT keys, email, OAuth)
-docker compose -f docker-compose.prod.yml up -d --build
+docker compose -f docker-compose.prod.yml build --no-cache
+docker compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.prod.yml logs -f identity
 ```
 
-The image is a multi-stage build on Temurin JDK/JRE 25 and runs as a non-root
-user. Structured JSON logging is enabled via `LOG_FORMAT=json`.
+The container exposes port `8080`. Put your TLS terminator (Cloudflare Tunnel,
+Caddy, nginx, Traefik, …) in front of it and point it at `localhost:8080`. The
+public API is then reachable at `https://<your-domain>/api/v1/...` — for the
+current deployment, `https://8080.tomavue.online/api/v1/...`.
 
 ---
 
-## Important build notes & caveats
+## OAuth configuration
 
-This project was assembled as a complete source tree. Please read the following
-before your first build:
+Providers activate automatically only when **both** the client id and secret are
+present in the environment. Set them in `.env.prod`:
 
-1. **Network access is required for the first Gradle build** to resolve all the
-   pinned dependency versions from Maven Central. It was **not** possible to run
-   `gradle build` in the authoring environment (no network), so the tree has not
-   been compiler-verified end to end. Build it once in IntelliJ IDEA / via the
-   Gradle wrapper to surface any environment-specific issues.
-2. **JDK 25 toolchain.** The toolchain is set to 25. Make sure your Gradle
-   version and the Kotlin 2.4.0 plugin you resolve fully support a JDK 25
-   toolchain in your environment; if not, lower `jvmToolchain(25)` to your
-   installed LTS (e.g. 21).
-3. **Exposed 1.3.0 packages.** The data layer uses the Exposed v1 package layout
-   (`org.jetbrains.exposed.v1.core.*`, `org.jetbrains.exposed.v1.jdbc.*`,
-   `org.jetbrains.exposed.v1.datetime.*`). If you resolve a different Exposed
-   build whose package layout differs, adjust the imports in `data/.../db`.
-4. **Validation.** `konform` is declared as a dependency; the current request
-   validators are hand-written for precise error codes. You can migrate them to
-   konform schemas if you prefer.
-5. **Admin dashboard auth.** The server-rendered dashboard is intended to sit
-   behind your reverse-proxy / SSO. Disable it with `ADMIN_DASHBOARD_ENABLED=false`
-   if you don't want it exposed.
-6. **First admin user.** Registration assigns the `USER` role. Grant `ADMIN` to
-   your first administrator directly in the database, then manage the rest
-   through the admin API.
+```
+OAUTH_GOOGLE_CLIENT_ID=...
+OAUTH_GOOGLE_CLIENT_SECRET=...
+OAUTH_GITHUB_CLIENT_ID=...
+OAUTH_GITHUB_CLIENT_SECRET=...
+```
+
+Register the **exact** callback URLs in each provider console (scheme, host, and
+path must match character-for-character):
+
+```
+https://8080.tomavue.online/api/v1/oauth/google/callback
+https://8080.tomavue.online/api/v1/oauth/github/callback
+```
+
+- **Google** — APIs & Services → Credentials → OAuth 2.0 Client ID →
+  *Authorized redirect URIs*.
+- **GitHub** — Settings → Developer settings → OAuth Apps →
+  *Authorization callback URL*.
+
+With `BEHIND_PROXY=true`, the service builds redirect URIs from the forwarded
+scheme/host, so they correctly resolve to `https://8080.tomavue.online/...`.
+
+---
+
+## Roles & administration
+
+The `USER` and `ADMIN` roles are seeded by migrations. New accounts get `USER`.
+To promote an existing account to admin, grant it the `ADMIN` role directly in
+the database:
+
+```bash
+docker compose -f docker-compose.prod.yml exec postgres \
+  psql -U identity -d identity -c "INSERT INTO user_roles (user_id, role_id) \
+SELECT u.id, r.id FROM users u, roles r \
+WHERE u.email = 'someone@example.com' AND r.name = 'ADMIN' \
+ON CONFLICT DO NOTHING;"
+```
+
+Roles are encoded into the JWT at login, so the user must **log in again** (or
+refresh their token) for the new role to take effect.
+
+The server-rendered admin dashboard is available when
+`ADMIN_DASHBOARD_ENABLED=true`.
+
+---
+
+## Configuration reference
+
+All configuration is read from environment variables (a `.env` file is loaded
+automatically in development). See `.env.example` for the complete, commented
+list. The most relevant groups:
+
+- **HTTP server** — `SERVER_HOST`, `SERVER_PORT`, `APP_NAME`,
+  `FRONTEND_BASE_URL`, `CORS_ALLOWED_HOSTS`, `SWAGGER_ENABLED`,
+  `ADMIN_DASHBOARD_ENABLED`, `BEHIND_PROXY`, `COOKIE_SECURE`.
+- **Logging** — `LOG_FORMAT` (`text` | `json`), `LOG_LEVEL`.
+- **Database** — `DB_JDBC_URL`, `DB_USERNAME`, `DB_PASSWORD`, `DB_NAME`,
+  `DB_MAX_POOL_SIZE`, `DB_MIN_IDLE`, `DB_RUN_MIGRATIONS`.
+- **JWT** — key material (inline `*_PEM` or file `*_PATH`), `JWT_KEY_ID`,
+  `JWT_ISSUER`, `JWT_DEFAULT_AUDIENCE`.
+- **Token lifetimes** — `ACCESS_TOKEN_TTL_MINUTES`, `REFRESH_TOKEN_TTL_DAYS`,
+  `SERVICE_TOKEN_TTL_MINUTES`, `EMAIL_VERIFICATION_TTL_HOURS`,
+  `PASSWORD_RESET_TTL_HOURS`.
+- **Email** — `EMAIL_PROVIDER` (`LOG` | `RESEND` | `SMTP`),
+  `EMAIL_FROM_ADDRESS`, `EMAIL_FROM_NAME`, and provider credentials.
+- **OAuth** — `OAUTH_GOOGLE_*`, `OAUTH_GITHUB_*`.
+- **Rate limiting** — `RATE_LIMIT_ENABLED`, `RATE_LIMIT_MAX`,
+  `RATE_LIMIT_WINDOW_SECONDS`.
+
+---
+
+## Token verification (for downstream services)
+
+Downstream services do **not** call this API to validate every request. Instead
+they verify access tokens locally:
+
+1. Fetch the public keys once from the JWKS document and cache them.
+2. Verify the JWT signature (RS256), then check `iss`, `aud`, and `exp`.
+3. Read the user id, roles, and permissions from the token claims.
+
+This keeps the identity service off the hot path while still allowing instant,
+global revocation through the per-user `tokenVersion`.
+
+---
+
+## Build & test
+
+```bash
+./gradlew build              # compile + unit tests
+./gradlew :app:run           # run locally
+./gradlew :app:installDist   # produce a runnable distribution under app/build/install/app
+```
+
+Integration tests use Testcontainers and require a running Docker daemon.
 
 ---
 
 ## License
 
-Proprietary / internal. Adapt as needed for your own projects.
+Proprietary — internal use. Update this section with your chosen license before
+distributing.
