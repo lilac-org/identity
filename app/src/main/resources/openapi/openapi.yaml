@@ -1,0 +1,148 @@
+openapi: 3.0.3
+info:
+  title: Identity Auth Microservice
+  description: >-
+    Centralised authentication & authorization service. Issues RS256 JWT access
+    tokens (verifiable by any downstream backend via the JWKS endpoint) and
+    rotating, reuse-detecting refresh tokens. All responses use the envelope
+    `{ success, message, data, error }`.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+    description: Local development
+tags:
+  - name: Auth
+  - name: Account
+  - name: OAuth
+  - name: Admin
+  - name: System
+paths:
+  /health:
+    get:
+      tags: [System]
+      summary: Liveness/readiness probe
+      responses:
+        "200": { description: Service is healthy }
+  /.well-known/jwks.json:
+    get:
+      tags: [System]
+      summary: JSON Web Key Set for verifying access tokens
+      responses:
+        "200": { description: The active public signing keys }
+  /.well-known/openid-configuration:
+    get:
+      tags: [System]
+      summary: OpenID-style discovery document
+      responses:
+        "200": { description: Issuer and endpoint metadata }
+  /api/v1/auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new account (email + username + password)
+      responses:
+        "201": { description: Account created; verification email sent }
+  /api/v1/auth/login:
+    post:
+      tags: [Auth]
+      summary: Authenticate with identifier (email/username/phone) + password
+      responses:
+        "200": { description: Access + refresh tokens issued }
+  /api/v1/auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Rotate a refresh token
+      responses:
+        "200": { description: New token pair }
+  /api/v1/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Revoke the presented refresh token
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Logged out }
+  /api/v1/auth/forgot-password:
+    post:
+      tags: [Auth]
+      summary: Request a password-reset email
+      responses:
+        "200": { description: Email sent if the account exists }
+  /api/v1/auth/reset-password:
+    post:
+      tags: [Auth]
+      summary: Complete a password reset with a token
+      responses:
+        "200": { description: Password updated }
+  /api/v1/auth/verify-email:
+    post:
+      tags: [Auth]
+      summary: Verify an email address with a token
+      responses:
+        "200": { description: Email verified }
+  /api/v1/auth/resend-verification:
+    post:
+      tags: [Auth]
+      summary: Resend the verification email
+      responses:
+        "200": { description: Email re-sent if applicable }
+  /api/v1/auth/token:
+    post:
+      tags: [Auth]
+      summary: Client-credentials grant (service-to-service)
+      responses:
+        "200": { description: Service access token }
+  /api/v1/oauth/{provider}:
+    get:
+      tags: [OAuth]
+      summary: Begin an OAuth authorization (google | github)
+      parameters:
+        - { name: provider, in: path, required: true, schema: { type: string } }
+      responses:
+        "302": { description: Redirect to the provider }
+  /api/v1/oauth/{provider}/callback:
+    get:
+      tags: [OAuth]
+      summary: OAuth provider callback
+      parameters:
+        - { name: provider, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Token pair issued }
+  /api/v1/users/me:
+    get:
+      tags: [Account]
+      summary: Get the current user's profile
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Current user }
+    patch:
+      tags: [Account]
+      summary: Update the current user's profile
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Updated user }
+  /api/v1/users/me/change-password:
+    post:
+      tags: [Account]
+      summary: Change the current user's password
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Password changed }
+  /api/v1/admin/users:
+    get:
+      tags: [Admin]
+      summary: List users (requires users:read)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Paged users }
+  /api/v1/admin/audit-logs:
+    get:
+      tags: [Admin]
+      summary: Read the audit log (requires audit:read)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Paged audit entries }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

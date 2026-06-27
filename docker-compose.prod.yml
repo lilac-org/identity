@@ -1,0 +1,47 @@
+# =====================================================================
+# Production-like stack: the service image + PostgreSQL.
+# All secrets are supplied via an environment file (see .env.example).
+# Build & run with:  docker compose -f docker-compose.prod.yml up -d --build
+# =====================================================================
+services:
+  identity:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: identity-service
+    env_file:
+      - .env
+    environment:
+      DB_JDBC_URL: jdbc:postgresql://postgres:5432/identity
+      LOG_FORMAT: json
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  postgres:
+    image: postgres:17-alpine
+    container_name: identity-postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME:-identity}
+      POSTGRES_USER: ${DB_USERNAME:-identity}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-identity}
+    volumes:
+      - identity_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-identity} -d ${DB_NAME:-identity}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  identity_pg:

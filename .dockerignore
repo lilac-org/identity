@@ -1,0 +1,12 @@
+.git
+.gitignore
+.idea
+*.iml
+build
+*/build
+.gradle
+.env
+.env.*
+!.env.example
+*.log
+README.md
