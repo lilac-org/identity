@@ -30,14 +30,14 @@ endpoint, together with rotating, reuse-detecting **refresh tokens**.
 The running API is currently available at:
 
 ```
-https://8080.tomavue.online
+https://andreasmlbngaol-identity.hf.space
 ```
 
 **Every application endpoint lives under `/api/v1/`.** For example, the public
 API surface is reached via:
 
 ```
-https://8080.tomavue.online/api/v1/...
+https://andreasmlbngaol-identity.hf.space/api/v1/...
 ```
 
 A few operational endpoints sit outside the versioned prefix (for example the
@@ -46,7 +46,7 @@ verification), but everything you call as a client of this service is under
 `/api/v1/`.
 
 Interactive API documentation (when enabled) is served at
-`https://8080.tomavue.online/swagger`.
+`https://andreasmlbngaol-identity.hf.space/swagger`.
 
 ---
 
@@ -194,7 +194,7 @@ docker compose -f docker-compose.prod.yml logs -f identity
 The container exposes port `8080`. Put your TLS terminator (Cloudflare Tunnel,
 Caddy, nginx, Traefik, …) in front of it and point it at `localhost:8080`. The
 public API is then reachable at `https://<your-domain>/api/v1/...` — for the
-current deployment, `https://8080.tomavue.online/api/v1/...`.
+current deployment, `https://andreasmlbngaol-identity.hf.space/api/v1/...`.
 
 ---
 
@@ -214,8 +214,8 @@ Register the **exact** callback URLs in each provider console (scheme, host, and
 path must match character-for-character):
 
 ```
-https://8080.tomavue.online/api/v1/oauth/google/callback
-https://8080.tomavue.online/api/v1/oauth/github/callback
+https://andreasmlbngaol-identity.hf.space/api/v1/oauth/google/callback
+https://andreasmlbngaol-identity.hf.space/api/v1/oauth/github/callback
 ```
 
 - **Google** — APIs & Services → Credentials → OAuth 2.0 Client ID →
@@ -224,7 +224,7 @@ https://8080.tomavue.online/api/v1/oauth/github/callback
   *Authorization callback URL*.
 
 With `BEHIND_PROXY=true`, the service builds redirect URIs from the forwarded
-scheme/host, so they correctly resolve to `https://8080.tomavue.online/...`.
+scheme/host, so they correctly resolve to `https://andreasmlbngaol-identity.hf.space/...`.
 
 ---
 
