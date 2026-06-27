@@ -27,8 +27,11 @@ COPY app/build.gradle.kts ./app/
 RUN chmod +x gradlew && ./gradlew --no-daemon :app:dependencies || true
 
 # Copy sources and build the runnable distribution.
+# NOTE: "COPY . ." overwrites the gradlew copied above with the repo copy,
+# which may have lost its executable bit in git (mode 100644). Re-apply
+# chmod +x here, otherwise this step fails with "./gradlew: Permission denied".
 COPY . .
-RUN ./gradlew --no-daemon :app:installDist -x test
+RUN chmod +x gradlew && ./gradlew --no-daemon :app:installDist -x test
 
 # ---- Runtime stage --------------------------------------------------
 FROM eclipse-temurin:25-jre AS runtime
