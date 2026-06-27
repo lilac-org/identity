@@ -1,3 +1,18 @@
+---
+title: Identity Auth Service
+emoji: 🔐
+colorFrom: indigo
+colorTo: purple
+sdk: docker
+app_port: 7860
+pinned: false
+license: apache-2.0
+---
+
+<!-- The YAML block above configures the Hugging Face Space. It is ignored
+     by GitHub rendering and by the Docker build (README.md is in .dockerignore).
+     Remove it if you are not deploying to Hugging Face. -->
+
 # Identity — Authentication & Authorization Microservice
 
 A reusable, production-grade authentication and authorization microservice built
