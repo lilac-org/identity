@@ -8,6 +8,8 @@ info:
     `{ success, message, data, error }`.
   version: 1.0.0
 servers:
+  - url: https://andreasmlbngaol-identity.hf.space
+    description: Production (Hugging Face Space)
   - url: http://localhost:8080
     description: Local development
 tags:
