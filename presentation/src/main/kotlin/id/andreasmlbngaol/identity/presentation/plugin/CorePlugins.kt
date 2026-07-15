@@ -68,6 +68,7 @@ fun Application.configureHttp(allowedHosts: List<String>, behindProxy: Boolean =
     }
     install(Compression) { gzip { priority = 1.0 } }
     install(CORS) {
+        allowNonSimpleContentTypes = true
         allowMethod(HttpMethod.Get)
         allowMethod(HttpMethod.Post)
         allowMethod(HttpMethod.Put)
