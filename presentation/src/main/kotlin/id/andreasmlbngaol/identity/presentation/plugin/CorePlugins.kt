@@ -4,6 +4,7 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
+import io.ktor.server.application.ApplicationCallPipeline
 import io.ktor.server.application.call
 import io.ktor.server.application.install
 import io.ktor.server.plugins.calllogging.CallLogging
@@ -12,12 +13,11 @@ import io.ktor.server.plugins.callid.callIdMdc
 import io.ktor.server.plugins.compression.Compression
 import io.ktor.server.plugins.compression.gzip
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.plugins.defaultheaders.DefaultHeaders
 import io.ktor.server.plugins.forwardedheaders.XForwardedHeaders
 import io.ktor.server.request.httpMethod
-import io.ktor.server.response.ApplicationSendPipeline
 import io.ktor.server.response.appendIfAbsent
+import io.ktor.server.response.respond
 import kotlinx.serialization.json.Json
 import org.slf4j.event.Level
 import java.util.UUID
@@ -37,7 +37,7 @@ fun Application.configureSerialization() {
 }
 
 /**
- * Request correlation + structured access logs. Every request gets a stable
+ * Request correlation and structured access logs. Every request gets a stable
  * call id (propagated from X-Request-Id when present) that is attached to the
  * MDC so it appears in every log line for that request — essential for tracing
  * across services.
@@ -71,40 +71,50 @@ fun Application.configureHttp(allowedHosts: List<String>, behindProxy: Boolean =
         header("X-Frame-Options", "DENY")
     }
     install(Compression) { gzip { priority = 1.0 } }
-    install(CORS) {
-        allowNonSimpleContentTypes = true
-        allowMethod(HttpMethod.Get)
-        allowMethod(HttpMethod.Post)
-        allowMethod(HttpMethod.Put)
-        allowMethod(HttpMethod.Patch)
-        allowMethod(HttpMethod.Delete)
-        allowMethod(HttpMethod.Options)
-        allowHeader(HttpHeaders.Authorization)
-        allowHeader(HttpHeaders.ContentType)
-        allowHeader(HttpHeaders.XRequestId)
-        allowHeader("X-Requested-With")
-        allowCredentials = true
-        if (allowedHosts.isEmpty() || allowedHosts.contains("*")) {
-            anyHost() // development default
-        } else {
-            allowedHosts.forEach { host ->
-                val parts = host.split("://")
-                if (parts.size == 2) allowHost(parts[1], schemes = listOf(parts[0])) else allowHost(host)
-            }
+    val allowAnyOrigin = allowedHosts.isEmpty() || allowedHosts.contains("*")
+    val allowedOrigins = allowedHosts.toSet()
+    intercept(ApplicationCallPipeline.Plugins) {
+        val origin = call.request.headers[HttpHeaders.Origin]
+        if (origin == null) {
+            proceed()
+            return@intercept
         }
-    }
-    // Ktor 3.5.1 still omits Access-Control-Allow-Credentials on automatic
-    // preflight responses even when allowCredentials = true. Credentialed
-    // browser fetches require it, so patch only those OPTIONS preflight
-    // responses at send time after the CORS plugin has built the response.
-    sendPipeline.intercept(ApplicationSendPipeline.Before) {
-        if (
-            call.request.httpMethod == HttpMethod.Options &&
-            call.request.headers["Origin"] != null &&
-            call.request.headers["Access-Control-Request-Method"] != null
-        ) {
-            call.response.headers.appendIfAbsent("Access-Control-Allow-Credentials", "true")
+
+        if (!allowAnyOrigin && origin !in allowedOrigins) {
+            proceed()
+            return@intercept
         }
+
+        call.response.headers.appendIfAbsent(HttpHeaders.AccessControlAllowOrigin, origin)
+        call.response.headers.appendIfAbsent(HttpHeaders.AccessControlAllowCredentials, "true")
+        call.response.headers.appendIfAbsent(HttpHeaders.Vary, "Origin")
+
+        val requestedMethod = call.request.headers[HttpHeaders.AccessControlRequestMethod]
+        if (call.request.httpMethod == HttpMethod.Options && requestedMethod != null) {
+            val requestedHeaders = call.request.headers[HttpHeaders.AccessControlRequestHeaders]
+                ?: "content-type,x-requested-with"
+            call.response.headers.appendIfAbsent(
+                HttpHeaders.AccessControlAllowMethods,
+                "GET,POST,PUT,PATCH,DELETE,OPTIONS",
+            )
+            call.response.headers.appendIfAbsent(
+                HttpHeaders.AccessControlAllowHeaders,
+                requestedHeaders,
+            )
+            call.response.headers.appendIfAbsent(HttpHeaders.AccessControlMaxAge, "600")
+            call.response.headers.appendIfAbsent(
+                HttpHeaders.Vary,
+                "Access-Control-Request-Method",
+            )
+            call.response.headers.appendIfAbsent(
+                HttpHeaders.Vary,
+                "Access-Control-Request-Headers",
+            )
+            call.respond(io.ktor.http.HttpStatusCode.OK)
+            finish()
+            return@intercept
+        }
+
         proceed()
     }
 }

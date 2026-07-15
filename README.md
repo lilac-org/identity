@@ -230,13 +230,20 @@ an AFinance registration uses `client_id=afinance`,
 cross-site deployments require `COOKIE_SECURE=true`; SameSite is selected
 automatically (`None` for secure cookies, `Lax` otherwise).
 
-Browser login uses JSON and `X-Requested-With: AFinance`, so Identity enables
-non-simple content types and allows that header in its CORS plugin. For local
-Web development, add the exact origin `http://localhost:8080` to
+Browser login uses JSON and `X-Requested-With: AFinance`, so Identity handles
+CORS explicitly for trusted origins instead of relying on Ktor's automatic
+preflight response. For any allowed origin, Identity returns:
+
+- `Access-Control-Allow-Origin: <origin>`
+- `Access-Control-Allow-Credentials: true`
+
+For CORS preflight (`OPTIONS`) it also echoes requested headers and returns the
+allowed methods. This is required for `fetch` with `credentials: "include"`;
+without `Access-Control-Allow-Credentials: true` on the preflight response, the
+browser fails before sending the actual login request.
+
+For local Web development, add the exact origin `http://localhost:8080` to
 `CORS_ALLOWED_HOSTS` and to the affected client's `redirect_uris` callback list.
-Credentialed browser preflight responses also include
-`Access-Control-Allow-Credentials: true`; without it, `fetch` with
-`credentials: "include"` fails before sending the actual login request.
 
 OAuth callbacks still use the existing token response flow and will be migrated
 to cookie transport together with the Web OAuth redirect task.
