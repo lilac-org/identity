@@ -178,7 +178,7 @@ cp .env.example .env.prod
 | `FRONTEND_BASE_URL` | your public URL | used in email links / redirects |
 | `CORS_ALLOWED_HOSTS` | your real origins | avoid `*` in production |
 | `BEHIND_PROXY` | `true` | honor `X-Forwarded-*` (correct HTTPS scheme/host) |
-| `COOKIE_SECURE` | `true` | admin-dashboard cookie over HTTPS only |
+| `COOKIE_SECURE` | `true` | admin and refresh cookies over HTTPS only |
 | `LOG_FORMAT` | `json` | structured logs (already forced in compose) |
 | `EMAIL_PROVIDER` | `RESEND` or `SMTP` | real email delivery |
 
@@ -200,6 +200,38 @@ The container exposes port `8080`. Put your TLS terminator (Cloudflare Tunnel,
 Caddy, nginx, Traefik, …) in front of it and point it at `localhost:8080`. The
 public API is then reachable at `https://<your-domain>/api/v1/...` — for the
 current deployment, `https://andreasmlbngaol-identity.hf.space/api/v1/...`.
+
+---
+
+## Web refresh-token cookies
+
+Native clients continue sending and receiving refresh tokens in JSON bodies.
+Web clients can request cookie transport by sending `useCookie: true`, their
+registered `clientId`, and `X-Requested-With: AFinance` to
+`POST /api/v1/auth/login`.
+
+For cookie transport, Identity stores the rotating refresh token in an
+`HttpOnly` cookie scoped to `/api/v1/auth`. Login and refresh responses omit the
+refresh token from JSON. Web refresh requests send their `clientId` and
+`audience`, while Web logout requests send `clientId`; both omit `refreshToken`
+because the browser supplies the cookie.
+
+Every cookie-auth request must include an exact allowed `Origin`, the registered
+`clientId`, and `X-Requested-With: AFinance`. Identity derives allowed origins
+from that client's `redirect_uris`; adding an application does not require an
+Identity environment change or redeploy. Public cookie clients must be enabled,
+non-confidential, and may only request their registered audiences.
+
+Register each Web application in the `clients` table with a stable `client_id`,
+its `allowed_audiences`, and full callback URLs in `redirect_uris`. For example,
+an AFinance registration uses `client_id=afinance`,
+`allowed_audiences=afinance`, and
+`redirect_uris=https://a-finance.pages.dev/oauth/callback`. Production
+cross-site deployments require `COOKIE_SECURE=true`; SameSite is selected
+automatically (`None` for secure cookies, `Lax` otherwise).
+
+OAuth callbacks still use the existing token response flow and will be migrated
+to cookie transport together with the Web OAuth redirect task.
 
 ---
 

@@ -68,19 +68,22 @@ object ConfigLoader {
             EmailConfig.Provider.valueOf(get("EMAIL_PROVIDER", "LOG").uppercase())
         }.getOrDefault(EmailConfig.Provider.LOG)
 
+        val frontendBaseUrl = get("FRONTEND_BASE_URL", "http://localhost:3000")
+        val cookieSecure = bool("COOKIE_SECURE", false)
+
         return AppConfig(
             server = ServerConfig(
                 host = get("SERVER_HOST", "0.0.0.0"),
                 port = int("SERVER_PORT", 8080),
             ),
             appName = get("APP_NAME", "Identity"),
-            frontendBaseUrl = get("FRONTEND_BASE_URL", "http://localhost:3000"),
+            frontendBaseUrl = frontendBaseUrl,
             corsAllowedHosts = get("CORS_ALLOWED_HOSTS", "*")
                 .split(",").map { it.trim() }.filter { it.isNotEmpty() },
             swaggerEnabled = bool("SWAGGER_ENABLED", true),
             adminDashboardEnabled = bool("ADMIN_DASHBOARD_ENABLED", true),
             behindProxy = bool("BEHIND_PROXY", false),
-            cookieSecure = bool("COOKIE_SECURE", false),
+            cookieSecure = cookieSecure,
             database = DatabaseConfig(
                 jdbcUrl = get("DB_JDBC_URL", "jdbc:postgresql://localhost:5433/identity"),
                 username = get("DB_USERNAME", "identity"),
@@ -130,4 +133,5 @@ object ConfigLoader {
         val secret = get("OAUTH_${prefix}_CLIENT_SECRET")
         return if (!id.isNullOrBlank() && !secret.isNullOrBlank()) OAuthProviderConfig(id, secret) else null
     }
+
 }

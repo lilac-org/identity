@@ -30,11 +30,11 @@ fun User.toResponse(): UserResponse = UserResponse(
     updatedAt = updatedAt.toString(),
 )
 
-fun AuthTokens.toResponse(): TokenResponse = TokenResponse(
+fun AuthTokens.toResponse(includeRefreshToken: Boolean = true): TokenResponse = TokenResponse(
     accessToken = accessToken,
-    refreshToken = refreshToken.ifBlank { null },
+    refreshToken = refreshToken.takeIf { includeRefreshToken && it.isNotBlank() },
     accessTokenExpiresAt = accessTokenExpiresAt.toString(),
-    refreshTokenExpiresAt = refreshTokenExpiresAt.toString().takeIf { refreshToken.isNotBlank() },
+    refreshTokenExpiresAt = refreshTokenExpiresAt.toString().takeIf { includeRefreshToken && refreshToken.isNotBlank() },
 )
 
 fun Role.toResponse(): RoleResponse = RoleResponse(

@@ -60,6 +60,7 @@ paths:
     post:
       tags: [Auth]
       summary: Authenticate with identifier (email/username/phone) + password
+      description: Cookie transport requires a registered public clientId, an allowed Origin derived from its redirectUris, and X-Requested-With.
       requestBody:
         required: true
         content:
@@ -67,7 +68,11 @@ paths:
             schema: { $ref: "#/components/schemas/LoginRequest" }
       responses:
         "200":
-          description: Access + refresh tokens issued
+          description: Access + refresh tokens issued; cookie mode omits refresh token from JSON
+          headers:
+            Set-Cookie:
+              description: HttpOnly refresh-token cookie when useCookie is true
+              schema: { type: string }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/TokenEnvelope" }
@@ -76,6 +81,7 @@ paths:
     post:
       tags: [Auth]
       summary: Rotate a refresh token
+      description: Native clients send refreshToken. Cookie clients send clientId and audience while the browser supplies the cookie.
       requestBody:
         required: true
         content:
@@ -83,7 +89,11 @@ paths:
             schema: { $ref: "#/components/schemas/RefreshRequest" }
       responses:
         "200":
-          description: New token pair
+          description: New token pair; cookie mode rotates Set-Cookie and omits refresh token from JSON
+          headers:
+            Set-Cookie:
+              description: Rotated HttpOnly refresh-token cookie in cookie mode
+              schema: { type: string }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/TokenEnvelope" }
@@ -92,6 +102,7 @@ paths:
     post:
       tags: [Auth]
       summary: Revoke the presented refresh token (or all devices)
+      description: Cookie clients send clientId while the browser supplies the refresh token cookie.
       security: [{ bearerAuth: [] }]
       requestBody:
         required: false
@@ -421,15 +432,40 @@ components:
           items: { type: string }
           default: []
           description: Optional target audience(s) for the access token.
+        clientId:
+          type: string
+          nullable: true
+          description: Registered public client id; required when useCookie is true.
+        useCookie:
+          type: boolean
+          default: false
+          description: Store the refresh token in an HttpOnly cookie and omit it from JSON.
     RefreshRequest:
       type: object
-      required: [refreshToken]
       properties:
-        refreshToken: { type: string }
+        refreshToken:
+          type: string
+          nullable: true
+          description: Required for native body transport; omitted for cookie transport.
+        clientId:
+          type: string
+          nullable: true
+          description: Registered public client id; required for cookie transport.
+        audience:
+          type: array
+          items: { type: string }
+          default: []
     LogoutRequest:
       type: object
       properties:
-        refreshToken: { type: string, nullable: true }
+        refreshToken:
+          type: string
+          nullable: true
+          description: Required for native body transport; omitted for cookie transport.
+        clientId:
+          type: string
+          nullable: true
+          description: Registered public client id; required for cookie transport.
         allDevices: { type: boolean, default: false }
     ForgotPasswordRequest:
       type: object
@@ -493,7 +529,11 @@ components:
         refreshToken: { type: string, nullable: true }
         tokenType: { type: string, example: Bearer }
         accessTokenExpiresAt: { type: string, format: date-time }
-        refreshTokenExpiresAt: { type: string, format: date-time, nullable: true }
+        refreshTokenExpiresAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Omitted when refresh-token cookie transport is used.
     UserResponse:
       type: object
       properties:

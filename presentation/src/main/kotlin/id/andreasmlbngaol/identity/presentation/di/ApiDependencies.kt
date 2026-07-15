@@ -20,6 +20,7 @@ import id.andreasmlbngaol.identity.domain.usecase.auth.LogoutUseCase
 import id.andreasmlbngaol.identity.domain.usecase.auth.RefreshTokenUseCase
 import id.andreasmlbngaol.identity.domain.usecase.auth.RegisterUseCase
 import id.andreasmlbngaol.identity.domain.usecase.client.ClientCredentialsUseCase
+import id.andreasmlbngaol.identity.domain.usecase.client.ResolvePublicClientUseCase
 import id.andreasmlbngaol.identity.domain.usecase.oauth.OAuthLoginUseCase
 import id.andreasmlbngaol.identity.presentation.config.FrontendLinks
 import id.andreasmlbngaol.identity.presentation.config.HttpRuntimeConfig
@@ -42,6 +43,7 @@ class ApiDependencies(
     val getCurrentUser: GetCurrentUserUseCase,
     val updateProfile: UpdateProfileUseCase,
     val clientCredentials: ClientCredentialsUseCase,
+    val resolvePublicClient: ResolvePublicClientUseCase,
     val oauthLogin: OAuthLoginUseCase,
     val listUsers: ListUsersUseCase,
     val getUser: GetUserUseCase,

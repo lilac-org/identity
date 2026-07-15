@@ -20,13 +20,23 @@ data class LoginRequest(
     val password: String,
     /** Optional target audience(s) for the issued access token. */
     val audience: List<String> = emptyList(),
+    val clientId: String? = null,
+    val useCookie: Boolean = false,
 )
 
 @Serializable
-data class RefreshRequest(val refreshToken: String)
+data class RefreshRequest(
+    val refreshToken: String? = null,
+    val clientId: String? = null,
+    val audience: List<String> = emptyList(),
+)
 
 @Serializable
-data class LogoutRequest(val refreshToken: String? = null, val allDevices: Boolean = false)
+data class LogoutRequest(
+    val refreshToken: String? = null,
+    val clientId: String? = null,
+    val allDevices: Boolean = false,
+)
 
 @Serializable
 data class ForgotPasswordRequest(val email: String)

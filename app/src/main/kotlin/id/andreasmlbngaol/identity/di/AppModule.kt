@@ -28,6 +28,7 @@ import id.andreasmlbngaol.identity.domain.usecase.auth.LogoutUseCase
 import id.andreasmlbngaol.identity.domain.usecase.auth.RefreshTokenUseCase
 import id.andreasmlbngaol.identity.domain.usecase.auth.RegisterUseCase
 import id.andreasmlbngaol.identity.domain.usecase.client.ClientCredentialsUseCase
+import id.andreasmlbngaol.identity.domain.usecase.client.ResolvePublicClientUseCase
 import id.andreasmlbngaol.identity.domain.usecase.oauth.OAuthLoginUseCase
 import id.andreasmlbngaol.identity.presentation.config.FrontendLinks
 import id.andreasmlbngaol.identity.presentation.config.HttpRuntimeConfig
@@ -135,6 +136,7 @@ fun useCaseModule(): Module = module {
 
     // --- Clients / OAuth -------------------------------------------------
     single { ClientCredentialsUseCase(clients = get(), passwordHasher = get(), tokenIssuer = get(), clock = get()) }
+    single { ResolvePublicClientUseCase(clients = get()) }
     single {
         OAuthLoginUseCase(
             providers = get(), users = get(), oauthAccounts = get(), roles = get(),
@@ -158,7 +160,7 @@ fun useCaseModule(): Module = module {
             register = get(), login = get(), logout = get(), refresh = get(),
             verifyEmail = get(), resendVerification = get(), forgotPassword = get(),
             resetPassword = get(), changePassword = get(), getCurrentUser = get(),
-            updateProfile = get(), clientCredentials = get(), oauthLogin = get(),
+            updateProfile = get(), clientCredentials = get(), resolvePublicClient = get(), oauthLogin = get(),
             listUsers = get(), getUser = get(), setUserStatus = get(),
             manageRoles = get(), listRoles = get(), listAuditLogs = get(),
             rateLimiter = get(), policy = get(),

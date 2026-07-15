@@ -77,6 +77,7 @@ fun Application.configureHttp(allowedHosts: List<String>, behindProxy: Boolean =
         allowHeader(HttpHeaders.Authorization)
         allowHeader(HttpHeaders.ContentType)
         allowHeader(HttpHeaders.XRequestId)
+        allowHeader("X-Requested-With")
         allowCredentials = true
         if (allowedHosts.isEmpty() || allowedHosts.contains("*")) {
             anyHost() // development default
