@@ -4,7 +4,6 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
-import io.ktor.server.application.ApplicationCallPipeline
 import io.ktor.server.application.call
 import io.ktor.server.application.install
 import io.ktor.server.plugins.calllogging.CallLogging
@@ -16,6 +15,9 @@ import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.plugins.defaultheaders.DefaultHeaders
 import io.ktor.server.plugins.forwardedheaders.XForwardedHeaders
+import io.ktor.server.request.httpMethod
+import io.ktor.server.response.ApplicationSendPipeline
+import io.ktor.server.response.appendIfAbsent
 import kotlinx.serialization.json.Json
 import org.slf4j.event.Level
 import java.util.UUID
@@ -69,18 +71,6 @@ fun Application.configureHttp(allowedHosts: List<String>, behindProxy: Boolean =
         header("X-Frame-Options", "DENY")
     }
     install(Compression) { gzip { priority = 1.0 } }
-    // Ktor 3.5.1 emits Access-Control-Allow-Credentials on the actual response,
-    // but not its automatic preflight response. Credentialed Fetch requests
-    // require it on both. Restrict this to CORS preflight requests so actual
-    // responses retain the CORS plugin's single header value.
-    intercept(ApplicationCallPipeline.Plugins) {
-        if (
-            call.request.headers["Origin"] != null &&
-            call.request.headers["Access-Control-Request-Method"] != null
-        ) {
-            call.response.headers.append("Access-Control-Allow-Credentials", "true")
-        }
-    }
     install(CORS) {
         allowNonSimpleContentTypes = true
         allowMethod(HttpMethod.Get)
@@ -102,5 +92,19 @@ fun Application.configureHttp(allowedHosts: List<String>, behindProxy: Boolean =
                 if (parts.size == 2) allowHost(parts[1], schemes = listOf(parts[0])) else allowHost(host)
             }
         }
+    }
+    // Ktor 3.5.1 still omits Access-Control-Allow-Credentials on automatic
+    // preflight responses even when allowCredentials = true. Credentialed
+    // browser fetches require it, so patch only those OPTIONS preflight
+    // responses at send time after the CORS plugin has built the response.
+    sendPipeline.intercept(ApplicationSendPipeline.Before) {
+        if (
+            call.request.httpMethod == HttpMethod.Options &&
+            call.request.headers["Origin"] != null &&
+            call.request.headers["Access-Control-Request-Method"] != null
+        ) {
+            call.response.headers.appendIfAbsent("Access-Control-Allow-Credentials", "true")
+        }
+        proceed()
     }
 }
