@@ -234,6 +234,9 @@ Browser login uses JSON and `X-Requested-With: AFinance`, so Identity enables
 non-simple content types and allows that header in its CORS plugin. For local
 Web development, add the exact origin `http://localhost:8080` to
 `CORS_ALLOWED_HOSTS` and to the affected client's `redirect_uris` callback list.
+Credentialed browser preflight responses also include
+`Access-Control-Allow-Credentials: true`; without it, `fetch` with
+`credentials: "include"` fails before sending the actual login request.
 
 OAuth callbacks still use the existing token response flow and will be migrated
 to cookie transport together with the Web OAuth redirect task.

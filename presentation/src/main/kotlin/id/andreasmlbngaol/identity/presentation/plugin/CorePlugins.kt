@@ -4,6 +4,8 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
+import io.ktor.server.application.ApplicationCallPipeline
+import io.ktor.server.application.call
 import io.ktor.server.application.install
 import io.ktor.server.plugins.calllogging.CallLogging
 import io.ktor.server.plugins.callid.CallId
@@ -67,6 +69,18 @@ fun Application.configureHttp(allowedHosts: List<String>, behindProxy: Boolean =
         header("X-Frame-Options", "DENY")
     }
     install(Compression) { gzip { priority = 1.0 } }
+    // Ktor 3.5.1 emits Access-Control-Allow-Credentials on the actual response,
+    // but not its automatic preflight response. Credentialed Fetch requests
+    // require it on both. Restrict this to CORS preflight requests so actual
+    // responses retain the CORS plugin's single header value.
+    intercept(ApplicationCallPipeline.Plugins) {
+        if (
+            call.request.headers["Origin"] != null &&
+            call.request.headers["Access-Control-Request-Method"] != null
+        ) {
+            call.response.headers.append("Access-Control-Allow-Credentials", "true")
+        }
+    }
     install(CORS) {
         allowNonSimpleContentTypes = true
         allowMethod(HttpMethod.Get)
