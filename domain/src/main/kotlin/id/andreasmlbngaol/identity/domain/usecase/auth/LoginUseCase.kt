@@ -96,6 +96,8 @@ class LoginUseCase(
         )
     }
 
+    internal fun generateOpaqueToken(): String = tokenIssuer.generateRefreshToken()
+
     companion object {
         // A pre-computed Argon2id hash of a random string, used for constant-time
         // behaviour when the user does not exist.

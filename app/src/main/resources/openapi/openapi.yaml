@@ -200,6 +200,11 @@ paths:
           in: path
           required: true
           schema: { type: string, enum: [google, github] }
+        - { name: client_id, in: query, required: true, schema: { type: string } }
+        - { name: redirect_uri, in: query, required: true, schema: { type: string, format: uri } }
+        - { name: state, in: query, required: true, schema: { type: string } }
+        - { name: code_challenge, in: query, required: true, schema: { type: string } }
+        - { name: code_challenge_method, in: query, required: true, schema: { type: string, enum: [S256] } }
       responses:
         "302": { description: Redirect to the provider }
   /api/v1/oauth/{provider}/callback:
@@ -219,6 +224,17 @@ paths:
           in: query
           required: false
           schema: { type: string }
+      responses:
+        "302": { description: Redirect to the registered client with code and state }
+  /api/v1/oauth/token:
+    post:
+      tags: [OAuth]
+      summary: Exchange an authorization code with PKCE
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AuthorizationCodeExchangeRequest" }
       responses:
         "200":
           description: Token pair issued
@@ -515,6 +531,14 @@ components:
           type: array
           items: { type: string }
           default: []
+    AuthorizationCodeExchangeRequest:
+      type: object
+      required: [clientId, code, redirectUri, codeVerifier]
+      properties:
+        clientId: { type: string, description: Registered public OAuth client id. }
+        code: { type: string, description: One-time authorization code returned to the callback. }
+        redirectUri: { type: string, format: uri, description: Exact redirect URI used to begin authorization. }
+        codeVerifier: { type: string, description: Original PKCE verifier for the S256 code challenge. }
     AssignRoleRequest:
       type: object
       required: [role]

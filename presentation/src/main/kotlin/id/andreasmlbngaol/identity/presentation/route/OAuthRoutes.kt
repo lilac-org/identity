@@ -3,76 +3,68 @@ package id.andreasmlbngaol.identity.presentation.route
 import id.andreasmlbngaol.identity.domain.enums.AuthProvider
 import id.andreasmlbngaol.identity.domain.error.OAuthException
 import id.andreasmlbngaol.identity.presentation.di.ApiDependencies
+import id.andreasmlbngaol.identity.presentation.dto.AuthorizationCodeExchangeRequest
 import id.andreasmlbngaol.identity.presentation.mapper.toResponse
 import id.andreasmlbngaol.identity.presentation.response.ApiResponse
 import id.andreasmlbngaol.identity.presentation.security.toRequestContext
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.URLBuilder
 import io.ktor.server.plugins.origin
+import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondRedirect
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
+import io.ktor.server.routing.post
 import io.ktor.server.routing.route
-import java.util.Base64
-import java.util.UUID
 
-/**
- * /api/v1/oauth — Authorization-Code flow for Google and GitHub.
- *
- * `GET /{provider}` redirects the user to the provider with a signed-ish state
- * value; `GET /{provider}/callback` exchanges the code and returns tokens. The
- * `state` parameter is round-tripped to mitigate CSRF.
- */
 fun Route.oauthRoutes(deps: ApiDependencies) {
     route("/oauth") {
         get("/{provider}") {
             val provider = call.parseProvider() ?: return@get
-            val redirectUri = call.redirectUri(provider)
-            val state = Base64.getUrlEncoder().withoutPadding()
-                .encodeToString(UUID.randomUUID().toString().toByteArray())
-            val url = deps.oauthLogin.authorizationUrl(provider, state, redirectUri)
-            call.respondRedirect(url)
+            val clientId = call.request.queryParameters["client_id"] ?: throw OAuthException("Missing client_id")
+            val redirectUri = call.request.queryParameters["redirect_uri"] ?: throw OAuthException("Missing redirect_uri")
+            val state = call.request.queryParameters["state"] ?: throw OAuthException("Missing state")
+            val codeChallenge = call.request.queryParameters["code_challenge"] ?: throw OAuthException("Missing code_challenge")
+            if (call.request.queryParameters["code_challenge_method"] != "S256") throw OAuthException("PKCE S256 is required")
+            call.respondRedirect(deps.oauthLogin.beginAuthorization(
+                provider, clientId, redirectUri, state, codeChallenge, call.identityCallbackUri(provider),
+            ))
         }
-
         get("/{provider}/callback") {
             val provider = call.parseProvider() ?: return@get
-            val code = call.request.queryParameters["code"]
-                ?: throw OAuthException("Missing authorization code")
-            val redirectUri = call.redirectUri(provider)
-            val tokens = deps.oauthLogin.callback(
-                provider = provider,
-                code = code,
-                redirectUri = redirectUri,
-                audiences = emptySet(),
-                ctx = call.toRequestContext(),
+            val code = call.request.queryParameters["code"] ?: throw OAuthException("Missing authorization code")
+            val state = call.request.queryParameters["state"] ?: throw OAuthException("Missing OAuth state")
+            val result = deps.oauthLogin.completeAuthorization(
+                provider, code, state, call.identityCallbackUri(provider), call.toRequestContext(),
             )
-            call.respond(ApiResponse.ok(tokens.toResponse(), message = "OAuth login successful"))
+            val destination = URLBuilder(result.redirectUri).apply {
+                parameters.append("code", result.code)
+                parameters.append("state", result.state)
+            }.buildString()
+            call.respondRedirect(destination)
+        }
+        post("/token") {
+            val body = call.receive<AuthorizationCodeExchangeRequest>()
+            val tokens = deps.oauthLogin.exchangeAuthorizationCode(
+                body.clientId, body.code, body.redirectUri, body.codeVerifier, call.toRequestContext(),
+            )
+            call.respond(ApiResponse.ok(tokens.toResponse(), message = "OAuth token issued"))
         }
     }
 }
 
 private suspend fun io.ktor.server.application.ApplicationCall.parseProvider(): AuthProvider? {
-    val raw = parameters["provider"]?.uppercase()
-    return runCatching { AuthProvider.valueOf(raw ?: "") }.getOrNull()
+    val provider = runCatching { AuthProvider.valueOf(parameters["provider"]?.uppercase() ?: "") }.getOrNull()
         ?.takeIf { it != AuthProvider.LOCAL }
-        ?: run {
-            respond(HttpStatusCode.BadRequest, ApiResponse.failure("Unsupported OAuth provider", null))
-            null
-        }
+    if (provider == null) respond(HttpStatusCode.BadRequest, ApiResponse.failure("Unsupported OAuth provider", null))
+    return provider
 }
 
-private fun io.ktor.server.application.ApplicationCall.redirectUri(provider: AuthProvider): String {
-    request.queryParameters["redirect_uri"]?.let { return it }
-    // Use request.origin (not request.local) so that, behind a reverse proxy with
-    // XForwardedHeaders installed, the public scheme/host/port are reflected. The
-    // default port for the scheme is omitted so the URI matches EXACTLY what is
-    // registered in the provider console (https://host/... not https://host:443/...).
+private fun io.ktor.server.application.ApplicationCall.identityCallbackUri(provider: AuthProvider): String {
     val origin = request.origin
-    val scheme = origin.scheme
-    val host = origin.serverHost
-    val port = origin.serverPort
-    val authority =
-        if (port <= 0 || (scheme == "https" && port == 443) || (scheme == "http" && port == 80)) host
-        else "$host:$port"
-    return "$scheme://$authority/api/v1/oauth/${provider.name.lowercase()}/callback"
+    val authority = if ((origin.scheme == "https" && origin.serverPort == 443) || (origin.scheme == "http" && origin.serverPort == 80)) {
+        origin.serverHost
+    } else "${origin.serverHost}:${origin.serverPort}"
+    return "${origin.scheme}://$authority/api/v1/oauth/${provider.name.lowercase()}/callback"
 }

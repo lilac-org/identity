@@ -245,8 +245,15 @@ browser fails before sending the actual login request.
 For local Web development, add the exact origin `http://localhost:8080` to
 `CORS_ALLOWED_HOSTS` and to the affected client's `redirect_uris` callback list.
 
-OAuth callbacks still use the existing token response flow and will be migrated
-to cookie transport together with the Web OAuth redirect task.
+OAuth uses authorization code + PKCE (S256). A public client starts at
+`GET /api/v1/oauth/{provider}` with `client_id`, an allowlisted `redirect_uri`,
+`state`, `code_challenge`, and `code_challenge_method=S256`. After the social
+provider returns to Identity, Identity redirects to the registered client URI
+with a short-lived, one-time `code` and the original `state`; it never places
+access or refresh tokens in a redirect URL. The client exchanges that code at
+`POST /api/v1/oauth/token` using the same `redirectUri` and its `codeVerifier`.
+The authorization state and code are in-memory, short-lived records, therefore
+OAuth handoffs are supported by one running Identity instance.
 
 ---
 

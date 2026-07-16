@@ -141,7 +141,7 @@ fun useCaseModule(): Module = module {
         OAuthLoginUseCase(
             providers = get(), users = get(), oauthAccounts = get(), roles = get(),
             audit = get(), idGenerator = get(), clock = get(), transaction = get(),
-            loginUseCase = get(),
+            loginUseCase = get(), clients = get(),
         )
     }
 

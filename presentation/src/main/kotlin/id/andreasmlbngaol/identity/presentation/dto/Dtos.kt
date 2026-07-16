@@ -68,6 +68,14 @@ data class ClientCredentialsRequest(
 )
 
 @Serializable
+data class AuthorizationCodeExchangeRequest(
+    val clientId: String,
+    val code: String,
+    val redirectUri: String,
+    val codeVerifier: String,
+)
+
+@Serializable
 data class AssignRoleRequest(val role: String)
 
 // ---- Responses ----------------------------------------------------------
